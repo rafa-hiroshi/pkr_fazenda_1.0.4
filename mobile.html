@@ -74,14 +74,38 @@
         });
       }
       
+      async function fetchViaProxy(url) {
+        var list = [
+          { prefix: 'https://api.allorigins.win/raw?url=', parse: function(t) { return JSON.parse(t); } },
+          { prefix: 'https://api.allorigins.win/get?url=', parse: function(t) { try { var d = JSON.parse(t); return d.contents ? JSON.parse(d.contents) : null; } catch(e) { return null; } } },
+          { prefix: 'https://api.codetabs.com/v1/proxy?quest=', parse: function(t) { return JSON.parse(t); } }
+        ];
+        for (var i = 0; i < list.length; i++) {
+          try {
+            var res = await fetch(list[i].prefix + encodeURIComponent(url));
+            var text = await res.text();
+            if (text && text.trim()) return list[i].parse(text);
+          } catch (e) {}
+        }
+        return null;
+      }
+
       async function fetchPlayers() {
+        var url = baseUrl + '?source=phone';
         try {
-          return await jsonpGet(baseUrl + '?source=phone');
-        } catch (e) {
-          return {
-            players: [],
-            error: 'Não foi possível conectar. Confira: 1) URL do script no Admin; 2) Computador com o app aberto; 3) Conexão com internet.'
-          };
+          return await jsonpGet(url);
+        } catch (e1) {
+          var proxied = await fetchViaProxy(url);
+          if (proxied) return proxied;
+          try {
+            var res = await fetch(url);
+            return await res.json();
+          } catch (e2) {
+            return {
+              players: [],
+              error: 'Não foi possível conectar. <a href="' + url.replace(/"/g, '&quot;') + '" target="_blank" rel="noopener" style="color:#60a5fa;text-decoration:underline;">Testar URL</a> — Confira: 1) URL no Admin; 2) Computador com app aberto; 3) Rede.'
+            };
+          }
         }
       }
 

@@ -1306,8 +1306,8 @@ function applyRemoteCommand(cmd) {
   return false;
 }
 
-/** Envia estado ao Google Apps Script para o celular exibir. Usa form POST (bypass CORS). */
-function pushStateToScript() {
+/** Envia estado ao Google Apps Script. useNewTab=true abre nova aba (mais confiável). */
+function pushStateToScript(useNewTab) {
   var url = localStorage.getItem(SCRIPT_URL_KEY);
   if (!url) return;
   var baseUrl = url.replace(/\?.*$/, "").replace(/\/$/, "");
@@ -1319,27 +1319,29 @@ function pushStateToScript() {
     addonLimit: state.addonLimit,
   });
   try {
-    var iframe = document.getElementById("_pokerSyncFrame");
-    if (!iframe) {
-      iframe = document.createElement("iframe");
-      iframe.id = "_pokerSyncFrame";
-      iframe.name = "_pokerSyncFrame";
-      iframe.style.cssText = "position:absolute;width:0;height:0;border:0;visibility:hidden";
-      document.body.appendChild(iframe);
-    }
     var form = document.createElement("form");
     form.method = "POST";
     form.action = baseUrl;
-    form.target = "_pokerSyncFrame";
+    form.target = useNewTab ? "_blank" : "_pokerSyncFrame";
     form.style.display = "none";
     var input = document.createElement("input");
     input.type = "hidden";
     input.name = "payload";
     input.value = payload;
     form.appendChild(input);
+    if (!useNewTab) {
+      var iframe = document.getElementById("_pokerSyncFrame");
+      if (!iframe) {
+        iframe = document.createElement("iframe");
+        iframe.id = "_pokerSyncFrame";
+        iframe.name = "_pokerSyncFrame";
+        iframe.style.cssText = "position:absolute;width:0;height:0;border:0;visibility:hidden";
+        document.body.appendChild(iframe);
+      }
+    }
     document.body.appendChild(form);
     form.submit();
-    setTimeout(function () { form.remove(); }, 3000);
+    setTimeout(function () { form.remove(); }, 2000);
   } catch (e) {}
 }
 
@@ -2925,12 +2927,12 @@ function bindEvents() {
       var origText = btn.textContent;
       btn.disabled = true;
       btn.textContent = "Enviando...";
-      pushStateToScript();
+      pushStateToScript(true);
       setTimeout(function () {
         btn.disabled = false;
         btn.textContent = origText;
-        window.alert("Dados enviados! Atualize a lista no celular.");
-      }, 1500);
+        window.alert("Dados enviados! Uma nova aba abriu - pode fechá-la. Depois atualize a lista no celular.");
+      }, 2000);
     });
   }
   if (copyMobileLink && mobileLinkInput) {

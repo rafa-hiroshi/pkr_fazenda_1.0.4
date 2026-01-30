@@ -279,6 +279,7 @@ function exportConfig() {
     tablesCount: state.tablesCount,
     prizeWinners: state.prizeWinners,
     prizeSplits: state.prizeSplits,
+    scriptUrl: localStorage.getItem(SCRIPT_URL_KEY) || "",
   };
   const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
   const url = URL.createObjectURL(blob);
@@ -874,6 +875,26 @@ function resetTournamentData() {
   state.tournamentEndEvent = null;
 }
 
+function refreshScriptUrlUI() {
+  const scriptUrlInput = document.getElementById("scriptUrlInput");
+  const mobileLinkBlock = document.getElementById("mobileLinkBlock");
+  const mobileLinkInput = document.getElementById("mobileLinkInput");
+  const qrImg = document.getElementById("mobileQrCode");
+  const url = localStorage.getItem(SCRIPT_URL_KEY) || "";
+  if (scriptUrlInput) scriptUrlInput.value = url;
+  if (mobileLinkBlock) {
+    if (url) {
+      mobileLinkBlock.classList.remove("hidden");
+      const dir = (window.location.pathname.endsWith("/") ? window.location.pathname : window.location.pathname.replace(/\/[^/]+$/, "/"));
+      const mobileUrl = window.location.origin + dir + "mobile.html?script=" + encodeURIComponent(url);
+      if (mobileLinkInput) mobileLinkInput.value = mobileUrl;
+      if (qrImg) qrImg.src = "https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=" + encodeURIComponent(mobileUrl);
+    } else {
+      mobileLinkBlock.classList.add("hidden");
+    }
+  }
+}
+
 function applyConfigData(data) {
   state.tournamentName = data.tournamentName || "";
   state.levels = Array.isArray(data.levels)
@@ -912,6 +933,18 @@ function applyConfigData(data) {
   state.lastStartTs = null;
   state.levelEndTs = null;
   state.players = [];
+  if (data.scriptUrl && typeof data.scriptUrl === "string") {
+    const url = data.scriptUrl.trim();
+    if (url) {
+      localStorage.setItem(SCRIPT_URL_KEY, url);
+      startSyncLoop();
+    } else {
+      localStorage.removeItem(SCRIPT_URL_KEY);
+      if (syncIntervalId) clearInterval(syncIntervalId);
+      syncIntervalId = null;
+    }
+    refreshScriptUrlUI();
+  }
   state.tableAssignmentEvent = null;
   state.transferEvents = [];
   state.tournamentStartEvent = null;
@@ -2846,38 +2879,20 @@ function bindEvents() {
   const mobileLinkBlock = document.getElementById("mobileLinkBlock");
   const mobileLinkInput = document.getElementById("mobileLinkInput");
   const copyMobileLink = document.getElementById("copyMobileLink");
-  if (scriptUrlInput) scriptUrlInput.value = localStorage.getItem(SCRIPT_URL_KEY) || "";
-  if (mobileLinkBlock && mobileLinkInput) {
-    const url = localStorage.getItem(SCRIPT_URL_KEY);
-    if (url) {
-      mobileLinkBlock.classList.remove("hidden");
-      const dir = (window.location.pathname.endsWith("/") ? window.location.pathname : window.location.pathname.replace(/\/[^/]+$/, "/"));
-      const mobileUrl = window.location.origin + dir + "mobile.html?script=" + encodeURIComponent(url);
-      mobileLinkInput.value = mobileUrl;
-      const qrImg = document.getElementById("mobileQrCode");
-      if (qrImg) qrImg.src = "https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=" + encodeURIComponent(mobileUrl);
-    }
-  }
+  refreshScriptUrlUI();
   if (saveScriptUrl && scriptUrlInput) {
     saveScriptUrl.addEventListener("click", () => {
       const val = scriptUrlInput.value.trim();
       if (val) {
         localStorage.setItem(SCRIPT_URL_KEY, val);
         startSyncLoop();
-        if (mobileLinkBlock && mobileLinkInput) {
-          mobileLinkBlock.classList.remove("hidden");
-          const dir = (window.location.pathname.endsWith("/") ? window.location.pathname : window.location.pathname.replace(/\/[^/]+$/, "/"));
-          const mobileUrl = window.location.origin + dir + "mobile.html?script=" + encodeURIComponent(val);
-          mobileLinkInput.value = mobileUrl;
-          const qrImg = document.getElementById("mobileQrCode");
-          if (qrImg) qrImg.src = "https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=" + encodeURIComponent(mobileUrl);
-        }
+        refreshScriptUrlUI();
         window.alert("URL salva. Copie o link do celular e abra no navegador do celular.");
       } else {
         localStorage.removeItem(SCRIPT_URL_KEY);
         if (syncIntervalId) clearInterval(syncIntervalId);
         syncIntervalId = null;
-        if (mobileLinkBlock) mobileLinkBlock.classList.add("hidden");
+        refreshScriptUrlUI();
       }
     });
   }

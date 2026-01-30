@@ -46,32 +46,37 @@
       }
 
       const baseUrl = scriptUrl.replace(/\?.*$/, '').replace(/\/$/, '');
-      const PROXIES = [
-        { url: function(u) { return 'https://api.allorigins.win/raw?url=' + encodeURIComponent(u); }, parse: function(t) { return JSON.parse(t); } },
-        { url: function(u) { return 'https://api.allorigins.win/get?url=' + encodeURIComponent(u); }, parse: function(t) { var d = JSON.parse(t); return d.contents ? JSON.parse(d.contents) : null; } },
-        { url: function(u) { return 'https://api.codetabs.com/v1/proxy?quest=' + encodeURIComponent(u); }, parse: function(t) { return JSON.parse(t); } }
-      ];
+      var jsonpId = 0;
       
-      async function fetchViaProxy(url) {
-        for (var i = 0; i < PROXIES.length; i++) {
-          try {
-            var res = await fetch(PROXIES[i].url(url));
-            var text = await res.text();
-            if (text && text.trim()) {
-              return PROXIES[i].parse(text);
-            }
-          } catch (e) {}
-        }
-        return null;
+      function jsonpGet(url) {
+        return new Promise(function(resolve, reject) {
+          var cb = '__pokerJsonp' + (++jsonpId);
+          var timeout = setTimeout(function() {
+            if (window[cb]) return;
+            window[cb] = null;
+            try { s.parentNode.removeChild(s); } catch(e) {}
+            reject(new Error('timeout'));
+          }, 15000);
+          window[cb] = function(data) {
+            clearTimeout(timeout);
+            window[cb] = null;
+            try { s.parentNode.removeChild(s); } catch(e) {}
+            resolve(data);
+          };
+          var s = document.createElement('script');
+          s.src = url + (url.indexOf('?') >= 0 ? '&' : '?') + 'callback=' + cb + '&_=' + Date.now();
+          s.onerror = function() {
+            clearTimeout(timeout);
+            if (window[cb]) { window[cb] = null; reject(new Error('load failed')); }
+            try { s.parentNode.removeChild(s); } catch(e) {}
+          };
+          document.head.appendChild(s);
+        });
       }
       
       async function fetchPlayers() {
-        var targetUrl = baseUrl + '?source=phone';
-        var data = await fetchViaProxy(targetUrl);
-        if (data) return data;
         try {
-          var res = await fetch(targetUrl);
-          return await res.json();
+          return await jsonpGet(baseUrl + '?source=phone');
         } catch (e) {
           return {
             players: [],
@@ -82,11 +87,9 @@
 
       async function sendCommand(action, playerId) {
         var url = baseUrl + '?source=phone&cmd=' + encodeURIComponent(action) + '&playerId=' + encodeURIComponent(playerId);
-        var data = await fetchViaProxy(url);
-        if (data && data.ok) return true;
         try {
-          var res = await fetch(url);
-          return (await res.json()).ok === true;
+          var data = await jsonpGet(url);
+          return data && data.ok === true;
         } catch (e) {
           return false;
         }

@@ -1306,7 +1306,7 @@ function applyRemoteCommand(cmd) {
   return false;
 }
 
-/** Envia estado ao Google Apps Script. useNewTab=true abre nova aba (mais confiável). */
+/** Envia estado ao Google Apps Script. useNewTab=true abre nova aba. Usa GET+Base64 (mais confiável que POST). */
 function pushStateToScript(useNewTab) {
   var url = localStorage.getItem(SCRIPT_URL_KEY);
   if (!url) return;
@@ -1319,29 +1319,52 @@ function pushStateToScript(useNewTab) {
     addonLimit: state.addonLimit,
   });
   try {
-    var form = document.createElement("form");
-    form.method = "POST";
-    form.action = baseUrl;
-    form.target = useNewTab ? "_blank" : "_pokerSyncFrame";
-    form.style.display = "none";
-    var input = document.createElement("input");
-    input.type = "hidden";
-    input.name = "payload";
-    input.value = payload;
-    form.appendChild(input);
-    if (!useNewTab) {
-      var iframe = document.getElementById("_pokerSyncFrame");
-      if (!iframe) {
-        iframe = document.createElement("iframe");
-        iframe.id = "_pokerSyncFrame";
-        iframe.name = "_pokerSyncFrame";
-        iframe.style.cssText = "position:absolute;width:0;height:0;border:0;visibility:hidden";
-        document.body.appendChild(iframe);
+    var b64 = btoa(unescape(encodeURIComponent(payload)));
+    if (b64.length < 2500) {
+      var getUrl = baseUrl + "?push=1&data=" + encodeURIComponent(b64);
+      var target = useNewTab ? "_blank" : "_pokerSyncFrame";
+      if (!useNewTab) {
+        var iframe = document.getElementById("_pokerSyncFrame");
+        if (!iframe) {
+          iframe = document.createElement("iframe");
+          iframe.id = "_pokerSyncFrame";
+          iframe.name = "_pokerSyncFrame";
+          iframe.style.cssText = "position:absolute;width:0;height:0;border:0;visibility:hidden";
+          document.body.appendChild(iframe);
+        }
       }
+      var a = document.createElement("a");
+      a.href = getUrl;
+      a.target = target;
+      a.style.display = "none";
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(function () { a.remove(); }, 1000);
+    } else {
+      var form = document.createElement("form");
+      form.method = "POST";
+      form.action = baseUrl;
+      form.target = useNewTab ? "_blank" : "_pokerSyncFrame";
+      form.style.display = "none";
+      var input = document.createElement("input");
+      input.type = "hidden";
+      input.name = "payload";
+      input.value = payload;
+      form.appendChild(input);
+      if (!useNewTab) {
+        var ifr = document.getElementById("_pokerSyncFrame");
+        if (!ifr) {
+          ifr = document.createElement("iframe");
+          ifr.id = "_pokerSyncFrame";
+          ifr.name = "_pokerSyncFrame";
+          ifr.style.cssText = "position:absolute;width:0;height:0;border:0;visibility:hidden";
+          document.body.appendChild(ifr);
+        }
+      }
+      document.body.appendChild(form);
+      form.submit();
+      setTimeout(function () { form.remove(); }, 2000);
     }
-    document.body.appendChild(form);
-    form.submit();
-    setTimeout(function () { form.remove(); }, 2000);
   } catch (e) {}
 }
 

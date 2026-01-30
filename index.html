@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Torneio de Poker Fazenda Rio Verde</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header class="app-header">
+      <div class="header-title">
+        <h1>Torneio de Poker Fazenda Rio Verde</h1>
+        <p></p>
+      </div>
+      <div id="navButtons" class="nav-buttons">
+        <button class="nav-btn active" data-view="home">Início</button>
+        <button class="nav-btn" data-view="settings">Configurações</button>
+        <button class="nav-btn" data-view="values">Valores</button>
+        <button class="nav-btn" data-view="players">Cadastrar Participantes</button>
+        <button class="nav-btn" data-view="tables">Mesas</button>
+        <button class="nav-btn" data-view="rebuy">Rebuy / Add-on / Eliminado</button>
+        <button class="nav-btn" data-view="events">Eventos</button>
+        <button class="nav-btn" data-view="payouts">Premiação</button>
+        <button class="nav-btn" data-view="history">Campeões</button>
+        <button class="nav-btn" data-view="admin">Adm</button>
+      </div>
+    </header>
+
+    <main class="container">
+      <section class="view active" data-view="home">
+        <div id="startScreen" class="card start-card">
+          <h2>Iniciar Torneio</h2>
+          <div class="start-options">
+            <div class="start-import-block">
+              <span class="start-import-label">Importar Configurações?</span>
+              <div class="start-import-row">
+                <input id="importConfigFile" type="file" accept=".json,application/json" />
+                <button id="importConfigBtn" class="secondary">Importar arquivo</button>
+              </div>
+            </div>
+            <div class="start-actions">
+              <button id="startWithoutImport" class="primary">Começar Novo</button>
+            </div>
+          </div>
+        </div>
+
+        <div id="dashboardScreen" class="card clock-card">
+          <div class="form-actions form-actions-between">
+            <div class="form-actions">
+              <button id="startTournament" class="btn-success">INICIAR TORNEIO</button>
+              <button id="openDisplay" class="primary">MOSTRAR PAINEL</button>
+            </div>
+            <button id="backToStart" class="secondary">Voltar para iniciar</button>
+          </div>
+          <div class="clock-display">
+            <div>
+              <span class="label">Rodada</span> 
+              <strong id="clockLevel">1</strong>
+            </div>
+            <div>
+              <span class="label">Small/Big Blinds</span>
+              <strong id="clockBlinds">100 / 200</strong>
+            </div>
+            <div>
+              <span class="label">Tempo</span>
+              <strong id="clockTime">15:00</strong>
+            </div>
+            <div>
+              <span class="label">Horário início</span>
+              <strong id="clockStartTime">--:--</strong>
+            </div>
+          </div>
+          <div class="summary">
+            <div class="summary-item">
+              <span class="label">Torneio</span>
+              <strong id="summaryTournament">-</strong>
+            </div>
+            <div class="summary-item">
+              <span class="label">Buy-in</span>
+              <strong id="summaryBuyin">R$ 0,00</strong>
+            </div>
+            <div class="summary-item">
+              <span class="label">Rebuy</span>
+              <strong id="summaryRebuy">R$ 0,00</strong>
+            </div>
+            <div class="summary-item">
+              <span class="label">Add-on</span>
+              <strong id="summaryAddon">R$ 0,00</strong>
+            </div>
+            <div class="summary-item">
+              <span class="label">Participantes</span>
+              <strong id="summaryPlayers">0</strong>
+              <span class="muted" id="summaryPaid">0 pagos</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="view" data-view="settings">
+        <div class="card">
+          <h2>Configurações do Torneio</h2>
+          <div class="grid two">
+            <label>
+              Nome do torneio
+              <input id="tournamentName" type="text" placeholder="Ex: Torneio de Poker Fazenda Rio Verde" />
+            </label>
+          </div>
+
+          <h3>Rodadas e Intervalo</h3>
+          <div class="level-form">
+            <label>
+              Small blind
+              <input id="blindSmall" type="text" inputmode="decimal" value="100,00" />
+            </label>
+            <label>
+              Big blind
+              <input id="blindBig" type="text" inputmode="decimal" value="200,00" />
+            </label>
+            <label>
+              Duracao (min)
+              <input id="blindDuration" type="number" min="1" value="15" />
+            </label>
+            <label class="check">
+              <input id="blindBreak" type="checkbox" />
+              Intervalo
+            </label>
+            <button id="addLevel" class="primary">Adicionar</button>
+          </div>
+          <div id="levelsList" class="row-list"></div>
+        </div>
+      </section>
+
+      <section class="view" data-view="values">
+        <div class="card">
+          <h2>Valores</h2>
+          <div class="grid two">
+            <label>
+              Buy-in (R$)
+              <input id="buyinValue" type="text" inputmode="decimal" value="100,00" />
+            </label>
+            <label>
+              Buy-in (fichas)
+              <input id="buyinChips" type="text" inputmode="decimal" value="50,00" />
+            </label>
+          </div>
+          <div class="grid two">
+            <label>
+              Rebuy (R$)
+              <input id="rebuyValue" type="text" inputmode="decimal" value="50,00" />
+            </label>
+            <label>
+              Rebuy (fichas)
+              <input id="rebuyChips" type="text" inputmode="decimal" value="50,00" />
+            </label>
+          </div>
+          <div class="grid two">
+            <label>
+              Add-on (R$)
+              <input id="addonValue" type="text" inputmode="decimal" value="50,00" />
+            </label>
+            <label>
+              Add-on (fichas)
+              <input id="addonChips" type="text" inputmode="decimal" value="70,00" />
+            </label>
+          </div>
+          <div class="grid two chip-values-grid">
+            <label>
+              Ficha Preta (R$)
+              <input id="chipValue1" type="text" inputmode="decimal" value="10,00" />
+            </label>
+            <label>
+              Ficha Branca (R$)
+              <input id="chipValue2" type="text" inputmode="decimal" value="5,00" />
+            </label>
+            <label>
+              Ficha Verde (R$)
+              <input id="chipValue3" type="text" inputmode="decimal" value="1,00" />
+            </label>
+            <label>
+              Ficha Azul (R$)
+              <input id="chipValue4" type="text" inputmode="decimal" value="0,50" />
+            </label>
+            <label>
+              Ficha Vermelha (R$)
+              <input id="chipValue5" type="text" inputmode="decimal" value="0,20" />
+            </label>
+          </div>
+          <div class="grid two">
+            <label>
+              Limite de rebuy por participante
+              <input id="rebuyLimit" type="text" inputmode="numeric" value="2" />
+            </label>
+            <label>
+              Limite de add-on por participante
+              <input id="addonLimit" type="text" inputmode="numeric" value="1" />
+            </label>
+          </div>
+          <div class="form-actions">
+            <button id="editValues" class="secondary">Editar</button>
+            <button id="saveValues">Salvar</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="view" data-view="tables">
+        <div class="card">
+          <h2>Mesas</h2>
+          <div class="grid two">
+            <label class="tables-select">
+              Quantidade de mesas
+              <div class="tables-controls">
+                <select id="tablesCount"></select>
+                <button id="editTablesCount" class="secondary">Editar</button>
+                <button id="saveTablesCount">Salvar</button>
+              </div>
+            </label>
+          </div>
+          <div id="tablesActions" class="form-actions hidden">
+            <button id="manualTables" class="secondary">Selecionar manual</button>
+            <button id="randomTables" class="secondary">Sortear mesas</button>
+            <button id="viewTables" class="secondary">Ver mesas</button>
+            <button id="transferTables" class="secondary">Transferir mesa</button>
+            <button id="createFinalTable" class="btn-success">Criar Mesa Final</button>
+          </div>
+          <div id="transferFields" class="hidden">
+            <div class="grid two">
+              <label class="tables-select">
+                Mesa origem
+                <div class="tables-controls">
+                  <select id="transferSource"></select>
+                </div>
+              </label>
+            </div>
+          </div>
+          <div id="transferList" class="row-list hidden"></div>
+          <div id="tablesList" class="row-list hidden"></div>
+        </div>
+      </section>
+
+      <section class="view" data-view="payouts">
+        <div class="card">
+          <h2>Premiação</h2>
+          <div class="grid two">
+            <div class="card">
+              <strong class="payout-title">Valor total arrecadado</strong>
+              <div class="muted">Inscrições + Rebuy + Add-on</div>
+              <div id="payoutIncomeList" class="payout-list"></div>
+              <div id="payoutTotal" class="payout-total">R$ 0,00</div>
+              <div class="payout-section">
+                <strong class="payout-title">Despesas</strong>
+                <div id="payoutExpensesSummary" class="payout-list"></div>
+              </div>
+              <div class="payout-section">
+                <strong class="payout-title">Total premiação</strong>
+                <div class="muted">Valor arrecadado - Total das despesas</div>
+                <div id="payoutNet" class="payout-total">R$ 0,00</div>
+                <div id="payoutPrizeSummary" class="payout-list"></div>
+                <div id="payoutPrizeTotal" class="payout-total"></div>
+              </div>
+            </div>
+          </div>
+          <div class="form-actions">
+            <button id="addExpense" class="secondary">Adicionar despesa</button>
+            <button id="editExpenses" class="secondary">Editar despesa</button>
+            <button id="togglePrize" class="secondary">Premiação</button>
+          </div>
+          <div id="prizeFields" class="hidden">
+            <div class="grid two">
+              <label class="prize-select">
+                Quantidade de jogadores premiados
+                <select id="prizeWinners"></select>
+              </label>
+            </div>
+            <div class="muted">Preencha os valores em porcentagem (%).</div>
+            <div id="prizeList" class="prize-list"></div>
+            <div class="form-actions">
+              <button id="calculatePrizes">Calcular</button>
+              <button id="savePrizes" class="secondary">Salvar</button>
+              <button id="clearPrizes" class="secondary">Limpar</button>
+            </div>
+          </div>
+          <div id="expensesList" class="row-list"></div>
+        </div>
+      </section>
+
+      <section class="view" data-view="players">
+        <div class="card">
+          <h2>Cadastrar participantes</h2>
+          <div class="grid two">
+            <label>
+              Nome
+              <input id="playerName" type="text" placeholder="Ex: Rafael" />
+            </label>
+            <label>
+              Status
+              <select id="playerStatus">
+                <option value="paid">Pago</option>
+                <option value="pending">Pendente</option>
+              </select>
+            </label>
+          </div>
+          <button id="addPlayer">Adicionar participante</button>
+
+          <h3>Lista de participantes <span id="playersCount" class="muted">(0)</span></h3>
+          <div id="playersList" class="row-list"></div>
+        </div>
+      </section>
+
+      <section class="view" data-view="rebuy">
+        <div class="card">
+          <h2>Rebuy / Add-on / Eliminado</h2>
+          <div id="rebuyList" class="row-list"></div>
+        </div>
+      </section>
+
+      <section class="view" data-view="events">
+        <div class="card">
+          <h2>Eventos do torneio</h2>
+          <p class="muted">Timeline de rebuys, add-ons e eliminações (mesa, rodada, tempo e horário).</p>
+          <div id="eventsList" class="row-list"></div>
+        </div>
+      </section>
+
+      <section class="view" data-view="history">
+        <div class="card">
+          <h2>Relação dos Ganhadores</h2>
+          <div id="historyTournaments" class="history-tournaments"></div>
+        </div>
+      </section>
+
+      <section class="view" data-view="admin">
+        <div class="card">
+          <h2>Admin - Historico</h2>
+          <div class="history-form sync-config">
+            <h3>Sync com celular (Google Apps Script)</h3>
+            <p class="muted">Configure para registrar rebuys e eliminações pelo celular sem ir até o computador.</p>
+            <label>
+              URL do Google Apps Script
+              <input id="scriptUrlInput" type="url" placeholder="https://script.google.com/macros/s/.../exec" />
+            </label>
+            <div class="form-actions">
+              <button id="saveScriptUrl" class="secondary">Salvar URL</button>
+            </div>
+            <div id="mobileLinkBlock" class="hidden">
+              <label>Escaneie o QR code com o celular ou copie o link:</label>
+              <div class="mobile-link-with-qr">
+                <div class="qr-code-wrap">
+                  <img id="mobileQrCode" src="" alt="QR Code para abrir no celular" />
+                </div>
+                <div class="mobile-link-row">
+                  <input id="mobileLinkInput" type="text" readonly />
+                  <button id="copyMobileLink" class="secondary">Copiar</button>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="history-form">
+            <button id="restartTournament" class="danger">Reiniciar torneio</button>
+            <p class="muted" style="margin-top: 8px;">Zera cronômetro, rodada, rebuys, add-ons, mesas e eventos. Mantém participantes e configurações.</p>
+          </div>
+          <div class="history-form">
+            <label>
+              Titulo
+              <input id="historyTitle" type="text" placeholder="Ex: 1 torneio de poker" />
+            </label>
+            <label>
+              Data do torneio
+              <input id="historyDate" type="date" />
+            </label>
+            <label>
+              Campeao
+              <input id="historyChampion" type="text" placeholder="Nome do campeao" />
+            </label>
+            <label>
+              Participantes
+              <input id="historyParticipants" type="number" min="0" />
+            </label>
+            <label>
+              Total de rebuys
+              <input id="historyRebuys" type="number" min="0" />
+            </label>
+            <label>
+              Total de add-ons
+              <input id="historyAddons" type="number" min="0" />
+            </label>
+            <label>
+              Valores (texto livre)
+              <input id="historyValues" type="text" placeholder="Ex: Buy-in R$ 100, Rebuy R$ 100" />
+            </label>
+            <label>
+              Classificacao
+              <input id="historyPlacement" type="text" placeholder="Ex: 1º Joao, 2º Maria" />
+            </label>
+            <button id="addHistory" class="secondary">Adicionar</button>
+          </div>
+          <div class="history-form">
+            <label>
+              Importar historico (CSV)
+              <input id="importHistoryFile" type="file" accept=".csv,text/csv" />
+            </label>
+            <button id="importHistory" class="secondary">Importar arquivo</button>
+          </div>
+          <div class="history-form">
+            <label>
+              Exportar Configuracoes (Rodadas, Tempo, Blinds, Valores)
+              <input type="text" value="Gerar arquivo .json" disabled />
+            </label>
+            <button id="exportConfigAdmin" class="secondary">Exportar</button>
+          </div>
+          <div class="history-form">
+            <label>
+              Exportar Participantes
+              <input type="text" value="Gerar arquivo .json" disabled />
+            </label>
+            <button id="exportPlayersAdmin" class="secondary">Exportar</button>
+          </div>
+          <div class="history-form">
+            <label>
+              Importar Participantes (JSON)
+              <input id="importPlayersFile" type="file" accept=".json,application/json" />
+            </label>
+            <button id="importPlayers" class="secondary">Importar arquivo</button>
+          </div>
+          <div id="historyList" class="row-list"></div>
+        </div>
+      </section>
+    </main>
+
+    <div id="championPhotoModal" class="photo-modal" aria-hidden="true">
+      <div class="photo-modal-backdrop"></div>
+      <div class="photo-modal-content">
+        <button type="button" class="photo-modal-close" aria-label="Fechar">&times;</button>
+        <p class="photo-modal-title" id="championPhotoModalTitle"></p>
+        <div class="photo-modal-image-wrap">
+          <img id="championPhotoModalImage" src="" alt="Foto do campeão" />
+          <p id="championPhotoModalPlaceholder" class="photo-modal-placeholder">Foto não disponível.</p>
+        </div>
+      </div>
+    </div>
+
+    <script src="app.js"></script>
+  </body>
+</html>

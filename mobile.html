@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+  <title>Poker Fazenda - Celular</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: system-ui, sans-serif; background: #0f1115; color: #f2f2f2; min-height: 100vh; padding: 16px; }
+    h1 { font-size: 1.25rem; margin: 0 0 8px; }
+    .subtitle { font-size: 0.9rem; color: #94a3b8; margin-bottom: 16px; }
+    .error { background: #c43a3a22; color: #f87171; padding: 12px; border-radius: 8px; margin-bottom: 16px; }
+    .player-card { background: #1b2030; border-radius: 12px; padding: 14px; margin-bottom: 10px; }
+    .player-card.eliminated { opacity: 0.65; }
+    .player-name { font-weight: 700; font-size: 1.1rem; margin-bottom: 4px; }
+    .player-name.eliminated { text-decoration: line-through; color: #94a3b8; }
+    .player-info { font-size: 0.8rem; color: #94a3b8; margin-bottom: 10px; }
+    .player-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+    .player-actions button { padding: 10px 14px; font-size: 14px; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; min-width: 70px; }
+    .btn-rebuy { background: #ffcc33; color: #111; }
+    .btn-rebuy-minus { background: #f4b942; color: #1b1b1b; }
+    .btn-addon { background: #3b82f6; color: #fff; }
+    .btn-addon-minus { background: #60a5fa; color: #fff; }
+    .btn-eliminate { background: #c43a3a; color: #fff; }
+    button:disabled { opacity: 0.5; cursor: not-allowed; }
+    .loading { text-align: center; padding: 40px; color: #94a3b8; }
+    .refresh-hint { font-size: 0.75rem; color: #64748b; margin-top: 16px; }
+    #refreshBtn { background: #2f364a; color: #f2f2f2; padding: 10px 20px; border: none; border-radius: 8px; font-size: 14px; cursor: pointer; margin-bottom: 16px; }
+  </style>
+</head>
+<body>
+  <h1>Poker Fazenda - Rebuy / Eliminar</h1>
+  <p class="subtitle" id="tournamentLabel">-</p>
+  <button id="refreshBtn">Atualizar lista</button>
+  <div id="content"></div>
+  <p class="refresh-hint">As alterações aparecem no computador em poucos segundos.</p>
+
+  <script>
+    (function() {
+      const params = new URLSearchParams(window.location.search);
+      const scriptUrl = params.get('script') || params.get('url') || '';
+      
+      if (!scriptUrl) {
+        document.getElementById('content').innerHTML = '<div class="error">Link inválido. Abra o link que está na seção Admin do computador principal.</div>';
+        return;
+      }
+
+      const baseUrl = scriptUrl.replace(/\?.*$/, '').replace(/\/$/, '');
+      
+      async function fetchPlayers() {
+        try {
+          const res = await fetch(baseUrl + '?source=phone');
+          const data = await res.json();
+          return data;
+        } catch (e) {
+          console.error(e);
+          return { players: [], error: e.message };
+        }
+      }
+
+      async function sendCommand(action, playerId) {
+        try {
+          const res = await fetch(baseUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ type: 'command', action, playerId })
+          });
+          const data = await res.json();
+          return data.ok;
+        } catch (e) {
+          console.error(e);
+          return false;
+        }
+      }
+
+      function render(data) {
+        const container = document.getElementById('content');
+        const label = document.getElementById('tournamentLabel');
+        
+        if (data.error) {
+          container.innerHTML = '<div class="error">Erro ao carregar: ' + data.error + '</div>';
+          return;
+        }
+
+        const players = data.players || [];
+        label.textContent = data.tournamentName || 'Torneio';
+        
+        if (players.length === 0) {
+          container.innerHTML = '<div class="loading">Nenhum participante. Configure no computador e inicie o torneio.</div>';
+          return;
+        }
+
+        const rebuyLimit = Number(data.rebuyLimit) || 0;
+        const addonLimit = Number(data.addonLimit) || 0;
+
+        container.innerHTML = players.map(function(p) {
+          const eliminated = Boolean(p.eliminated);
+          const canRebuyAdd = !eliminated && (rebuyLimit <= 0 || (p.rebuys || 0) < rebuyLimit);
+          const canRebuyRemove = (p.rebuys || 0) > 0;
+          const canAddonAdd = !eliminated && (addonLimit <= 0 || (p.addons || 0) < addonLimit);
+          const canAddonRemove = (p.addons || 0) > 0;
+          const rebuyTxt = rebuyLimit > 0 ? (p.rebuys || 0) + ' / ' + rebuyLimit : (p.rebuys || 0);
+          const addonTxt = addonLimit > 0 ? (p.addons || 0) + ' / ' + addonLimit : (p.addons || 0);
+          const mesa = p.tableNumber ? 'Mesa ' + String(p.tableNumber).padStart(2, '0') : '-';
+          
+          return '<div class="player-card' + (eliminated ? ' eliminated' : '') + '">' +
+            '<div class="player-name' + (eliminated ? ' eliminated' : '') + '">' + (p.name || '?') + '</div>' +
+            '<div class="player-info">' + mesa + ' | Rebuys: ' + rebuyTxt + ' | Add-ons: ' + addonTxt + '</div>' +
+            '<div class="player-actions">' +
+              '<button class="btn-rebuy" data-action="rebuy-add" data-id="' + p.id + '"' + (eliminated || !canRebuyAdd ? ' disabled' : '') + '>Rebuy +</button>' +
+              '<button class="btn-rebuy-minus" data-action="rebuy-remove" data-id="' + p.id + '"' + (!canRebuyRemove ? ' disabled' : '') + '>Rebuy -</button>' +
+              '<button class="btn-addon" data-action="addon-add" data-id="' + p.id + '"' + (eliminated || !canAddonAdd ? ' disabled' : '') + '>Add-on +</button>' +
+              '<button class="btn-addon-minus" data-action="addon-remove" data-id="' + p.id + '"' + (!canAddonRemove ? ' disabled' : '') + '>Add-on -</button>' +
+              '<button class="btn-eliminate" data-action="eliminate" data-id="' + p.id + '"' + (eliminated ? ' disabled' : '') + '>Eliminado</button>' +
+            '</div></div>';
+        }).join('');
+
+        container.querySelectorAll('button[data-action]').forEach(function(btn) {
+          btn.addEventListener('click', async function() {
+            const action = btn.dataset.action;
+            const playerId = btn.dataset.id;
+            btn.disabled = true;
+            const ok = await sendCommand(action, playerId);
+            if (ok) {
+              setTimeout(load, 500);
+            } else {
+              btn.disabled = false;
+            }
+          });
+        });
+      }
+
+      async function load() {
+        document.getElementById('content').innerHTML = '<div class="loading">Carregando...</div>';
+        const data = await fetchPlayers();
+        render(data);
+      }
+
+      document.getElementById('refreshBtn').addEventListener('click', load);
+      load();
+      setInterval(load, 30000);
+    })();
+  </script>
+</body>
+</html>

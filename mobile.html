@@ -46,30 +46,40 @@
       }
 
       const baseUrl = scriptUrl.replace(/\?.*$/, '').replace(/\/$/, '');
+      const CORS_PROXY = 'https://api.allorigins.win/raw?url=';
+      
+      function proxyUrl(url) {
+        return CORS_PROXY + encodeURIComponent(url);
+      }
       
       async function fetchPlayers() {
         try {
-          const res = await fetch(baseUrl + '?source=phone');
-          const data = await res.json();
-          return data;
+          var res = await fetch(proxyUrl(baseUrl + '?source=phone'));
+          var text = await res.text();
+          return JSON.parse(text);
         } catch (e) {
-          console.error(e);
-          return { players: [], error: e.message };
+          try {
+            res = await fetch(baseUrl + '?source=phone');
+            return await res.json();
+          } catch (e2) {
+            return { players: [], error: 'Falha ao conectar. Verifique a URL do script e se o computador principal está aberto.' };
+          }
         }
       }
 
       async function sendCommand(action, playerId) {
+        var url = baseUrl + '?source=phone&cmd=' + encodeURIComponent(action) + '&playerId=' + encodeURIComponent(playerId);
         try {
-          const res = await fetch(baseUrl, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ type: 'command', action, playerId })
-          });
-          const data = await res.json();
-          return data.ok;
+          var res = await fetch(proxyUrl(url));
+          var text = await res.text();
+          return JSON.parse(text || '{}').ok === true;
         } catch (e) {
-          console.error(e);
-          return false;
+          try {
+            res = await fetch(url);
+            return (await res.json()).ok === true;
+          } catch (e2) {
+            return false;
+          }
         }
       }
 

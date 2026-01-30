@@ -1306,11 +1306,12 @@ function applyRemoteCommand(cmd) {
   return false;
 }
 
-/** Envia estado ao Google Apps Script para o celular exibir. Usa form POST para evitar CORS. */
+/** Envia estado ao Google Apps Script para o celular exibir. Usa form POST (bypass CORS). */
 function pushStateToScript() {
-  const url = localStorage.getItem(SCRIPT_URL_KEY);
+  var url = localStorage.getItem(SCRIPT_URL_KEY);
   if (!url) return;
-  const payload = JSON.stringify({
+  var baseUrl = url.replace(/\?.*$/, "").replace(/\/$/, "");
+  var payload = JSON.stringify({
     type: "state",
     players: state.players,
     tournamentName: state.tournamentName,
@@ -1328,8 +1329,9 @@ function pushStateToScript() {
     }
     var form = document.createElement("form");
     form.method = "POST";
-    form.action = url;
+    form.action = baseUrl;
     form.target = "_pokerSyncFrame";
+    form.style.display = "none";
     var input = document.createElement("input");
     input.type = "hidden";
     input.name = "payload";
@@ -1337,7 +1339,7 @@ function pushStateToScript() {
     form.appendChild(input);
     document.body.appendChild(form);
     form.submit();
-    setTimeout(function () { form.remove(); }, 1000);
+    setTimeout(function () { form.remove(); }, 3000);
   } catch (e) {}
 }
 
@@ -2919,8 +2921,16 @@ function bindEvents() {
         window.alert("Configure a URL do script primeiro.");
         return;
       }
+      var btn = syncNowBtn;
+      var origText = btn.textContent;
+      btn.disabled = true;
+      btn.textContent = "Enviando...";
       pushStateToScript();
-      window.alert("Dados enviados! Atualize a lista no celular.");
+      setTimeout(function () {
+        btn.disabled = false;
+        btn.textContent = origText;
+        window.alert("Dados enviados! Atualize a lista no celular.");
+      }, 1500);
     });
   }
   if (copyMobileLink && mobileLinkInput) {

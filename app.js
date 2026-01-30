@@ -1306,22 +1306,38 @@ function applyRemoteCommand(cmd) {
   return false;
 }
 
-/** Envia estado ao Google Apps Script para o celular exibir. */
+/** Envia estado ao Google Apps Script para o celular exibir. Usa form POST para evitar CORS. */
 function pushStateToScript() {
   const url = localStorage.getItem(SCRIPT_URL_KEY);
   if (!url) return;
+  const payload = JSON.stringify({
+    type: "state",
+    players: state.players,
+    tournamentName: state.tournamentName,
+    rebuyLimit: state.rebuyLimit,
+    addonLimit: state.addonLimit,
+  });
   try {
-    fetch(url, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        type: "state",
-        players: state.players,
-        tournamentName: state.tournamentName,
-        rebuyLimit: state.rebuyLimit,
-        addonLimit: state.addonLimit,
-      }),
-    }).catch(() => {});
+    var iframe = document.getElementById("_pokerSyncFrame");
+    if (!iframe) {
+      iframe = document.createElement("iframe");
+      iframe.id = "_pokerSyncFrame";
+      iframe.name = "_pokerSyncFrame";
+      iframe.style.cssText = "position:absolute;width:0;height:0;border:0;visibility:hidden";
+      document.body.appendChild(iframe);
+    }
+    var form = document.createElement("form");
+    form.method = "POST";
+    form.action = url;
+    form.target = "_pokerSyncFrame";
+    var input = document.createElement("input");
+    input.type = "hidden";
+    input.name = "payload";
+    input.value = payload;
+    form.appendChild(input);
+    document.body.appendChild(form);
+    form.submit();
+    setTimeout(function () { form.remove(); }, 1000);
   } catch (e) {}
 }
 
@@ -2894,6 +2910,17 @@ function bindEvents() {
         syncIntervalId = null;
         refreshScriptUrlUI();
       }
+    });
+  }
+  var syncNowBtn = document.getElementById("syncNowBtn");
+  if (syncNowBtn) {
+    syncNowBtn.addEventListener("click", function () {
+      if (!localStorage.getItem(SCRIPT_URL_KEY)) {
+        window.alert("Configure a URL do script primeiro.");
+        return;
+      }
+      pushStateToScript();
+      window.alert("Dados enviados! Atualize a lista no celular.");
     });
   }
   if (copyMobileLink && mobileLinkInput) {

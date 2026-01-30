@@ -47,18 +47,18 @@
 
       const baseUrl = scriptUrl.replace(/\?.*$/, '').replace(/\/$/, '');
       const PROXIES = [
-        function(u) { return 'https://corsproxy.io/?' + encodeURIComponent(u); },
-        function(u) { return 'https://api.allorigins.win/raw?url=' + encodeURIComponent(u); },
-        function(u) { return 'https://api.codetabs.com/v1/proxy?quest=' + encodeURIComponent(u); }
+        { url: function(u) { return 'https://api.allorigins.win/raw?url=' + encodeURIComponent(u); }, parse: function(t) { return JSON.parse(t); } },
+        { url: function(u) { return 'https://api.allorigins.win/get?url=' + encodeURIComponent(u); }, parse: function(t) { var d = JSON.parse(t); return d.contents ? JSON.parse(d.contents) : null; } },
+        { url: function(u) { return 'https://api.codetabs.com/v1/proxy?quest=' + encodeURIComponent(u); }, parse: function(t) { return JSON.parse(t); } }
       ];
       
       async function fetchViaProxy(url) {
         for (var i = 0; i < PROXIES.length; i++) {
           try {
-            var res = await fetch(PROXIES[i](url));
+            var res = await fetch(PROXIES[i].url(url));
             var text = await res.text();
-            if (text && text.trim().startsWith('{')) {
-              return JSON.parse(text);
+            if (text && text.trim()) {
+              return PROXIES[i].parse(text);
             }
           } catch (e) {}
         }
